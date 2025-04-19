@@ -108,7 +108,7 @@ def main():
             minor_version = 1
 
             # CWD will be the git repo, so this should get us the right one
-            repo = git.Repo(".")
+            repo = git.Repo() # When path is empty, it checks GIT_DIR, falls back to cwd
 
             hextree_start = None
             if git_commit.startswith(b'tree '):
