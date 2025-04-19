@@ -102,6 +102,6 @@ setup(
         ],
     },
 
-    # Install the ots-git-gpg-wrapper.sh-script
-    scripts = ["ots-git-gpg-wrapper.sh"],
+    # Install the opentimestamps-git-gpg-wrapper-script
+    scripts = ["opentimestamps-git-gpg-wrapper"],
 )

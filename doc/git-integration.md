@@ -112,20 +112,20 @@ To create and verify these signatures we simply wrap the gpg binary with our
 own code, `ots-git-gpg-wrapper`. Git allows you to override the default GnuPG
 binary (`/usr/bin/gpg`) with your own using the `gpg.program` config option.
 Unfortunately that option doesn't let you set additional command line flags, so
-we use one more wrapper, `ots-git-gpg-wrapper.sh`. You can set all this up with
+we use one more wrapper, `opentimestamps-git-gpg-wrapper`. You can set all this up with
 either of the following:
 
 ```bash
-# just specify ots-git-gpg-wrapper.sh and let `git` find it itself
-git config --global gpg.program ots-git-gpg-wrapper.sh
-# manually enter the full path to ots-git-gpg-wrapper.sh
-git config --global gpg.program <path/to/ots-git-gpg-wrapper.sh>
+# just specify opentimestamps-git-gpg-wrapper and let `git` find it itself
+git config --global gpg.program opentimestamps-git-gpg-wrapper
+# manually enter the full path to opentimestamps-git-gpg-wrapper
+git config --global gpg.program <path/to/opentimestamps-git-gpg-wrapper>
 # auto-detect the full path using `which`
-git config --global gpg.program "`which ots-git-gpg-wrapper.sh`"
+git config --global gpg.program "`which opentimestamps-git-gpg-wrapper`"
 ```
 
 > **Note:** If you get errors that it doesn't find the
-> `ots-git-gpg-wrapper.sh`, make sure that your `PATH` includes the
+> `opentimestamps-git-gpg-wrapper`, make sure that your `PATH` includes the
 > installation location, e.g. by appending `export
 > PATH="$PATH:$HOME/.local/bin"` to your `.bashrc`. You can check the
 > installation location with `pip show -f opentimestamps-client`.
@@ -287,7 +287,7 @@ initial timestamp has been created it waits until the timestamp has been
 completed by the Bitcoin blockchain, and saves the completed timestamp. This
 may take up to a few hours, but in the case of an important software release
 that may not be a big deal. To use this you (currently) have to manually add
-`--wait` to the `ots-git-gpg-wrapper.sh` script. Then sign the tag as usual:
+`--wait` to the `opentimestamps-git-gpg-wrapper` script. Then sign the tag as usual:
 
     $ git tag -s -m 'Completed timestamp' full-timestamp HEAD
     ots: Submitting to remote calendar 'https://pool.opentimestamps.org'
