@@ -16,6 +16,8 @@ import binascii
 import io
 import logging
 import os
+import datetime
+import json
 import time
 import urllib.request
 import threading
@@ -393,17 +395,54 @@ def verify_timestamp(timestamp, args):
         else:
             return 2**32-1
 
-    good = False
+    attested_times = []
+    if not args.use_bitcoin:
+        logging.info("Not checking Bitcoin attestation; Bitcoin disabled")
     for msg, attestation in sorted(timestamp.all_attestations(), key=attestation_key):
+        def manualinstructions():
+            logging.info("To verify manually, check that Bitcoin block %d has merkleroot %s" %
+                        (attestation.height, b2lx(msg)))
         if attestation.__class__ == PendingAttestation:
             # Handled by the upgrade_timestamp() call above.
             pass
 
         elif attestation.__class__ == BitcoinBlockHeaderAttestation:
             if not args.use_bitcoin:
-                logging.warning("Not checking Bitcoin attestation; Bitcoin disabled")
-                logging.info("To verify manually, check that Bitcoin block %d has merkleroot %s" %
-                                (attestation.height, b2lx(msg)))
+                try:
+                    with urllib.request.urlopen(url:=f"https://blockstream.info/api/block-height/{attestation.height}") as response:
+                        blockhash=response.read().decode(errors="ignore")
+                except Exception as e:
+                    logging.error(f"Couldn't query {url} for Bitcoin block {attestation.height}: {e!r}")
+                    manualinstructions()
+                    continue
+                try:
+                    with urllib.request.urlopen(url:=f"https://blockstream.info/api/block/{blockhash}") as response:
+                        blockinfojson=response.read().decode(errors="ignore")
+                except Exception as e:
+                    logging.error(f"Couldn't {url} for Bitcoin block {blockhash}: {e!r}")
+                    manualinstructions()
+                    continue
+                try:
+                    blockinfo=json.loads(blockinfojson)
+                except json.JSONDecodeError as e:
+                    logging.error(f"Can't interpret {url} response {blockinfojson!r} as JSON: {e!r}")
+                    manualinstructions()
+                    continue
+                if not (blocktimestr := blockinfo.get(key:="timestamp")):
+                    blocktimestr = blockinfo.get(key:="mediantime")
+                try:
+                    blocktime = datetime.datetime.fromtimestamp(blocktimestr).astimezone(datetime.timezone.utc).astimezone()
+                except Exception as e:
+                    logging.error(f"Blockstream.info returned weird {key}={blocktimestr}={blocktimestr!r}: {e!r}")
+                    manualinstructions()
+                    continue
+                attested = (merkleroot := blockinfo.get("merkle_root")) == (shouldbe := b2lx(msg))
+                if attested:
+                    logging.info(f"Blockstream.info confirms merkle root {merkleroot} of block {attestation.height} and {key}={blocktime.strftime('%c %z')}")
+                    attested_times.append(blocktime)
+                else:
+                    logging.error(f"Blockstream.info says block {attestation.height} has merkle root {merkleroot} but it should be {shouldbe}. wtf? 🤨. Anyway {key}={blocktime.strftime('%c %z')}.")
+                    manualinstructions()
                 continue
 
             proxy = args.setup_bitcoin()
@@ -428,16 +467,17 @@ def verify_timestamp(timestamp, args):
                 logging.error("Bitcoin verification failed: %s" % str(err))
                 continue
 
-            logging.info("Success! Bitcoin block %d attests existence as of %s" %
-                            (attestation.height,
-                             time.strftime('%Y-%m-%d %Z',
-                                          time.localtime(attested_time))))
-            good = True
+            attested_time = datetime.datetime.fromtimestamp(attested_time).astimezone(datetime.timezone.utc).astimezone()
+            attested_times.append(attested_time)
+            logging.info("Bitcoin block %d attests existence as of %s" %
+                            (attestation.height, attested_time.strftime("%c %z")))
 
             # One Bitcoin attestation is enough
-            break
+            # break # no!
 
-    return good
+    if attested_times:
+        logging.info(f"Earliest attested time is {min(attested_times).strftime('%c %z')} (±2 hours or what)")
+    return bool(attested_times)
 
 
 def verify_command(args):
