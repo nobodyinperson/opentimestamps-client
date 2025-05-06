@@ -57,9 +57,13 @@ def make_common_options_arg_parser():
     btc_net_group.add_argument('--btc-regtest', dest='btc_net', action='store_const',
                                const='regtest',
                                help='Use Bitcoin regtest rather than mainnet')
-    btc_net_group.add_argument('--no-bitcoin', dest='use_bitcoin', action='store_false',
-                               default=True,
-                               help='Disable Bitcoin entirely')
+    btc_net_group.add_argument('--query-local-bitcoin', dest='query_local_bitcoin', action='store_false',
+                               default=False,
+                               help='Query local Bitcoin node for time')
+    btc_net_group.add_argument('--query-blockstream', nargs="?", type=int, const=1,
+                               default=0,
+                               help='Query blockstream.info for bitcoin info, '
+                               '--query-blockstream 2 means to query up to two attestations, default is 1')
 
     parser.add_argument("-w", "--wait", action="store_true", default=False,
                         help="When creating, upgrading, or verifying "
