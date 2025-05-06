@@ -1,3 +1,14 @@
+Yann: for development
+
+```bash
+fhs
+python -m venv venv
+source venv/bin/activate.fish
+pip install -e .
+# then play around with git, e.g.
+git -c opentimestamps.flags='--query-blockstream' -C ~/my/repo log --show-signature
+```
+
 # OpenTimestamps Client
 
 Command-line tool to create and validate timestamp proofs with the
